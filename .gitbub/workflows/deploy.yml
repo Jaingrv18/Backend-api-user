@@ -1,0 +1,36 @@
+# .github/workflows/deploy.yml
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y nodejs npm
+
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            sudo apt update
+            sudo apt install -y nodejs npm
+            pm2 stop index.js || true
+            rm -rf backend-api-hello
+            mkdir backend-api-hello
+            scp -r * ${{ secrets.VM_USER }}@${{ secrets.VM_IP }}:~/backend-api-hello
+            cd ~/backend-api-hello
+            npm install
+            pm2 start index.js --name "backend-api-hello"
